@@ -32,8 +32,8 @@ You can change these models later to any supported by Ollama.
 
 ## Prerequisites
 
-- Docker Desktop with Docker Compose
 - Python 3.10+ (tested with 3.12)
+- Docker & Docker Compose on the command line
 - Internet access for initial model pulls (first run only)
 - Windows on ARM device (e.g., Qualcomm Snapdragon X Elite) or WSL2 environment
 
@@ -188,3 +188,4 @@ docker compose down -v
 ## Credits
 
 This sample is a collaboration between Weaviate and Qualcomm.
+
