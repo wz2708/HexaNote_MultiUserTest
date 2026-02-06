@@ -217,6 +217,7 @@ export function NotesPage() {
                                 initialContent={selectedNote.content}
                                 initialTags={selectedNote.tags}
                                 onSave={handleSaveNote}
+                                autosaveDelayMs={5000}
                             />
                         </div>
                     </>

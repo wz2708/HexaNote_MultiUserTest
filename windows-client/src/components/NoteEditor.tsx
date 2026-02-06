@@ -11,13 +11,15 @@ interface NoteEditorProps {
     initialContent?: string
     initialTags?: string[]
     onSave?: (data: { title: string; content: string; tags: string[] }) => void
+    autosaveDelayMs?: number
 }
 
 export function NoteEditor({
     initialTitle = '',
     initialContent = '',
     initialTags = [],
-    onSave
+    onSave,
+    autosaveDelayMs = 5000
 }: NoteEditorProps) {
     const [title, setTitle] = useState(initialTitle)
     const [content, setContent] = useState(initialContent)
@@ -26,16 +28,39 @@ export function NoteEditor({
     const [isPreview, setIsPreview] = useState(false)
     const tagInputRef = useRef<HTMLInputElement>(null)
 
+    // autosave state
+    const [dirty, setDirty] = useState(false)
+    const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle')
+    // helps avoid autosave firing when props reset the editor
+    const resettingFromPropsRef = useRef(false)
+
     useEffect(() => {
         setTitle(initialTitle)
         setContent(initialContent)
         setTags(initialTags)
+        // autosave states
+        console.log('resetting from props')
+        resettingFromPropsRef.current = true
+        setDirty(false)
+        setSaveState('idle')
+        // allow next tick edits to be treated as user edits
+        queueMicrotask(() => {
+            resettingFromPropsRef.current = false
+        })
     }, [initialTitle, initialContent, initialTags])
+
+    const markDirty = () => {
+        if (!onSave) return
+        if (resettingFromPropsRef.current) return
+        setDirty(true)
+        setSaveState('dirty')
+    }
 
     const handleAddTag = () => {
         const newTag = tagInput.trim().toLowerCase()
         if (newTag && !tags.includes(newTag)) {
             setTags([...tags, newTag])
+            markDirty()
         }
         setTagInput('')
         tagInputRef.current?.focus()
@@ -43,6 +68,7 @@ export function NoteEditor({
 
     const handleRemoveTag = (tagToRemove: string) => {
         setTags(tags.filter(t => t !== tagToRemove))
+        markDirty()
     }
 
     const handleTagKeyDown = (e: React.KeyboardEvent) => {
@@ -52,14 +78,37 @@ export function NoteEditor({
         } else if (e.key === 'Backspace' && tagInput === '' && tags.length > 0) {
             // Remove last tag on backspace when input is empty
             setTags(tags.slice(0, -1))
+            markDirty()
         }
     }
 
-    const handleSave = () => {
-        if (onSave) {
-            onSave({ title: title || 'Untitled Note', content, tags })
+    const handleSave = async () => {
+        if (!onSave) return
+        setSaveState('saving')
+        try {
+        await onSave({ title: title || 'Untitled Note', content, tags })
+        setDirty(false)
+        setSaveState('saved')
+        } catch (e) {
+        setSaveState('error')
+        // keep dirty so it can retry via autosave or manual save
+        setDirty(true)
         }
     }
+
+    // debounced autosave
+    useEffect(() => {
+        if (!onSave) return
+        if (!dirty) return
+        if (saveState === 'saving') return
+
+        const t = window.setTimeout(() => {
+        void handleSave()
+        }, autosaveDelayMs)
+
+        return () => window.clearTimeout(t)
+        // include everything that should trigger autosave:
+    }, [title, content, tags, dirty, autosaveDelayMs]) // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div className="flex flex-col h-full">
@@ -69,7 +118,10 @@ export function NoteEditor({
                 <input
                     type="text"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => {
+                        setTitle(e.target.value)
+                        markDirty()
+                    }}
                     placeholder="Note Title..."
                     className="w-full bg-transparent text-2xl font-bold text-white placeholder:text-slate-500 focus:outline-none border-b border-transparent focus:border-cyan-500 pb-1 transition-colors"
                 />
@@ -134,14 +186,26 @@ export function NoteEditor({
                         Preview
                     </button>
                 </div>
-                {onSave && (
-                    <button
+                <div className="flex items-center gap-3">
+                    {/* ✅ autosave status */}
+                    {onSave && (
+                        <span className="text-xs text-slate-400">
+                        {saveState === 'saving' && 'Saving…'}
+                        {saveState === 'dirty' && 'Unsaved'}
+                        {saveState === 'saved' && 'Saved'}
+                        {saveState === 'error' && 'Save failed'}
+                        {saveState === 'idle' && ''}
+                        </span>
+                    )}
+                    {onSave && (
+                        <button
                         onClick={handleSave}
                         className="px-3 py-1 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-500"
-                    >
+                        >
                         Save
-                    </button>
-                )}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Editor / Preview Area */}
@@ -149,7 +213,10 @@ export function NoteEditor({
                 {/* Editor */}
                 <textarea
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={(e) => {
+                        setContent(e.target.value)
+                        markDirty()
+                    }}
                     className={clsx(
                         "w-full h-full p-4 bg-slate-900 text-slate-100 resize-none focus:outline-none font-mono",
                         isPreview ? 'hidden' : 'block'
