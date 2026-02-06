@@ -1,12 +1,22 @@
 ---
 services:
   ollama:
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    container_name: ollama
+      image: ollama/ollama
+      ports:
+        - "11434:11434"
+      volumes:
+        - ollama_data:/root/.ollama
+      container_name: ollama
+      # ----------------------------------------------------
+      # GPU Configuration if nvidia (Equivalent to --gpus=all)
+      # ----------------------------------------------------
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: all
+                capabilities: [gpu]
 
   weaviate:
     command:
@@ -29,6 +39,12 @@ services:
       ENABLE_API_BASED_MODULES: 'true'
       CLUSTER_HOSTNAME: 'node1'
       ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
+      OLLAMA_API_ENDPOINT: 'http://ollama:11434'
+      TEXT2VEC_OLLAMA_API_ENDPOINT: 'http://ollama:11434'
+      GENERATIVE_OLLAMA_API_ENDPOINT: 'http://ollama:11434'
+      # Increase timeouts for slow CPU inference
+      MODULES_CLIENT_TIMEOUT: '300s'
+      QUERY_MAXIMUM_RESULTS: 100
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
       AUTHENTICATION_APIKEY_ENABLED: 'true'
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'user-a-key,user-b-key'
@@ -37,7 +53,28 @@ services:
       AUTHORIZATION_RBAC_ROOT_USERS: 'user-a'
     depends_on:
       - ollama
+
+  backend:
+    build: ./backend
+    container_name: hexanote-backend
+    ports:
+      - "8001:8000"  
+    volumes:
+      - ./backend:/app
+      - hexanote_data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/hexanote.db
+      - WEAVIATE_URL=http://weaviate:8080
+      - WEAVIATE_API_KEY=user-a-key
+      - OLLAMA_URL=http://ollama:11434
+      - DEBUG=false
+    depends_on:
+      - weaviate
+      - ollama
+    restart: on-failure:0
+
 volumes:
   weaviate_data:
   ollama_data:
+  hexanote_data:
 ...

@@ -1,191 +1,257 @@
-# Local RAG with Weaviate + Ollama (Qualcomm Snapdragon X Elite)
+# HexaNote 📝
 
-This sample demonstrates a fully local Retrieval-Augmented Generation (RAG) pipeline using:
+A **privacy-first, AI-powered note-taking app** with semantic search and RAG (Retrieval-Augmented Generation). Everything runs **100% locally** on your machine.
 
-- Weaviate as the vector database and retriever
-- Ollama for local embedding and generation models
-- Python scripts to create a collection, ingest documents, and run semantic and generative queries
+## Features
 
-It is designed to run locally on Windows Subsystem for Linux (WSL) devices powered by Qualcomm Snapdragon X Elite. The sample is a collaboration between Weaviate and Qualcomm.
+- ✅ **Semantic Search** - Find notes by meaning, not just keywords
+- ✅ **RAG Chat** - Ask questions about your notes, get AI-powered answers
+- ✅ **Multi-device Sync** - Sync notes across devices via WebSocket
+- ✅ **Local AI** - Powered by Ollama (LLM) and Weaviate (Vector DB)
+- ✅ **Privacy First** - All data stays on your machine
 
-## What this demo shows
+---
 
-- Local embedding creation via the `text2vec-ollama` module
-- Local generation via the `generative-ollama` module
-- Local ingestion of a CSV dataset (books) into Weaviate
-- End-to-end RAG workflow: ingest → retrieve (semantic) → generate explanations
+## Quick Start
 
-## Architecture
+### Prerequisites
 
-- `docker-compose.yml` starts two local services:
-  - `ollama` on port `11434`
-  - `weaviate` on port `8080` with modules enabled: `text2vec-ollama,generative-ollama`
-- Weaviate is configured with API key authentication enabled.
-- The Python scripts connect locally to Weaviate and use Ollama for embeddings and generation.
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Docker Desktop** | Latest | With WSL2 backend enabled |
+| **Node.js** | 18+ | For Windows client |
+| **WSL2** | Ubuntu recommended | For running Docker |
 
-Key module and model choices used in this demo:
+---
 
-- Embeddings: `snowflake-arctic-embed:latest` (via Ollama)
-- Generator: `llama3.2:1b` (via Ollama)
+## 1. Backend Setup (WSL2/Docker)
+### Step 0: Configure WSL2
 
-You can change these models later to any supported by Ollama.
+-  Use Mirrored Network Mode for outside availablity 
 
-## Prerequisites
 
-- Python 3.10+ (tested with 3.12)
-- Docker & Docker Compose on the command line
-- Internet access for initial model pulls (first run only)
-- Windows on ARM device (e.g., Qualcomm Snapdragon X Elite) or WSL2 environment
-
-Note on acceleration: Ollama supports hardware acceleration where available on Windows. Ensure you use the appropriate Ollama build and drivers for your device for best performance.
-
-## Quick start
-
-1) Start the local stack (Weaviate + Ollama)
+### Step 1: Clone and Navigate
 
 ```bash
-# From the project root
-docker compose up -d
-```
+# In WSL2 terminal
+cd /mnt/c/Users/YOUR_USERNAME/HexaNote
 
-2) Pull the Ollama models used by this demo (run once)
 
-```bash
-docker exec -it ollama ollama pull snowflake-arctic-embed:latest
-docker exec -it ollama ollama pull llama3.2:1b
-```
+# install dep
 
-3) Set up Python environment and install dependencies
-
-- Ubuntu (Windows Subsystem for Linux):
-
-```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install weaviate-client>=4.16.0
+
+cd backend
+pip3 install -r requirements.txt
+
 ```
 
-4) Verify Weaviate is reachable
+### Step 2: Start Docker Containers, check for the Nvidia GPU config part
 
 ```bash
-python 0-test-connection.py
+cd ..
+
+docker compose up -d --build backend
+
+docker compose up -d
 ```
 
-Expected output: `True` for `client.is_ready()`.
+This starts:
+- **Ollama** (port 11434) - Local LLM inference
+- **Weaviate** (port 8080) - Vector database
+- **Backend API** (port 8001) - FastAPI server
 
-5) Create the collection and configure vectorization/generation
+### Step 3: Pull AI Models
 
 ```bash
-python 1-create-collection.py
+# Pull embedding model (for semantic search)
+docker exec -it ollama ollama pull mxbai-embed-large
+
+# Pull LLM model (for RAG chat)
+docker exec -it ollama ollama pull llama3.2:1b
 ```
 
-This creates a `Book` collection using:
-
-- Vectorizer: `text2vec-ollama` with `snowflake-arctic-embed:latest`
-- Generative: `generative-ollama` with `llama3.2:1b`
-
-6) Ingest the sample dataset
+### Step 4: Initialize Database Schema
 
 ```bash
-python 2-populate.py
+python3 5-migrate-to-notes_run-after-docker-compose-up-d.py 
 ```
 
-The dataset `7k-books-kaggle.csv` is included in the repo. The script reads each row and inserts a corresponding object into the `Book` collection.
-
-Column mapping in `2-populate.py`:
-
-- 0 → `isbn13`
-- 1 → `isbn10`
-- 2 → `title`
-- 3 → `subtitle`
-- 4 → `authors`
-- 5 → `categories`
-- 6 → `thumbnail`
-- 7 → `description`
-- 8 → `published_year`
-- 9 → `average_rating`
-- 10 → `num_pages`
-- 11 → `ratings_count`
-
-7) Run a semantic search (vector search)
+### Step 5: Verify Health
 
 ```bash
-python 3-semantic_search.py
+curl http://localhost:8001/api/v1/health
 ```
 
-Enter a natural-language query (e.g., "books about machine learning for beginners"). The script will retrieve the top matching books and print their titles and descriptions.
+Expected response:
+```json
+{"status": "healthy", "version": "1.0.0"}
+```
 
-8) Run a generative search (RAG-style explanation)
+---
+
+## 2. Windows Client Setup
+
+### Step 1: Navigate to Client Folder
+
+```powershell
+# In PowerShell or Command Prompt
+cd C:\Users\YOUR_USERNAME\HexaNote\windows-client
+```
+
+### Step 2: Install Dependencies
 
 ```bash
-python 4-generative_search.py
+npm install
 ```
 
-Enter a query and the script will ask the local LLM to explain why each recommended book might be interesting based on its metadata.
+### Step 3: Run Development Server
 
-## Files in this repo
+```bash
+npm run dev
+```
 
-- `docker-compose.yml` — Starts `weaviate` and `ollama` locally with the necessary modules enabled.
-- `0-test-connection.py` — Simple readiness check for Weaviate.
-- `1-create-collection.py` — Creates the `Book` collection and configures vectorizer + generative modules.
-- `2-populate.py` — Reads `7k-books-kaggle.csv` and inserts rows as `Book` objects.
-- `3-semantic_search.py` — Runs a semantic (vector) search over the `Book` collection.
-- `4-generative_search.py` — Runs a generative query to explain retrieved books.
-- `7k-books-kaggle.csv` — Sample dataset for ingestion.
+### Step 4: Open in Browser
 
-## Configuration
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-- Authentication
-  - Weaviate is configured with API keys (see `docker-compose.yml`).
-  - The Python scripts currently use the demo key `user-a-key` (see `0-test-connection.py`, `1-create-collection.py`, `2-populate.py`, `3-semantic_search.py`).
-  - You can change the allowed keys in `docker-compose.yml` under:
-    - `AUTHENTICATION_APIKEY_ALLOWED_KEYS`
-    - `AUTHENTICATION_APIKEY_USERS`
+---
 
-- Models
-  - Embeddings: `snowflake-arctic-embed:latest`
-  - Generator: `llama3.2:1b`
-  - To use different models, pull them with Ollama and update `1-create-collection.py` accordingly.
+## API Endpoints
 
-- Dataset
-  - If you swap in a different CSV, ensure the columns map to the properties used by `2-populate.py`.
-  - The current schema in `1-create-collection.py` defines the key properties used for search and generation.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/notes` | GET | List all notes |
+| `/api/v1/notes` | POST | Create a note |
+| `/api/v1/notes/{id}` | PUT | Update a note |
+| `/api/v1/notes/{id}` | DELETE | Delete a note |
+| `/api/v1/notes/search/semantic` | GET | Semantic search |
+| `/api/v1/notes/reindex` | POST | Reindex notes in Weaviate |
+| `/api/v1/chat/query` | POST | RAG chat query |
+| `/api/v1/sync` | POST | Batch sync notes |
+| `/api/v1/sync/ws` | WS | Real-time sync |
+
+---
 
 ## Troubleshooting
 
-- 401 Unauthorized from Weaviate
-  - Ensure the API key used by your Python scripts matches an allowed key in `docker-compose.yml`.
+### Semantic Search Returns Poor Results
 
-- Connection errors to Weaviate
-  - Ensure the containers are running: `docker ps`
-  - Ports: Weaviate `8080`, Ollama `11434` must be available.
+1. Click **Reindex** button in the Chat tab
+2. Wait for "Reindexed successfully" message
+3. Try searching again
 
-- Embedding/generation fails or times out
-  - Make sure the Ollama models have been pulled: `docker exec -it ollama ollama list`
-  - The first request after a model pull may take longer while the model loads.
+### RAG Chat Times Out
 
-- Ingestion errors
-  - Validate the CSV format and column order.
-  - Large ingests can be batched; see Weaviate client docs if you need higher throughput.
+- CPU inference is slow (~45-60 seconds per query)
+- The timeout is set to 5 minutes, just wait
+- For faster results, use a smaller model:
+  ```bash
+  docker exec -it ollama ollama pull qwen2:0.5b
+  ```
 
-- Performance on Snapdragon X Elite
-  - Use the latest Ollama build for Windows on ARM and keep drivers/accelerators up to date.
-  - Close other heavy apps while running large models locally.
 
-## Stopping and cleaning up
 
+### "Model not found" Error
+
+Pull the required models:
 ```bash
-docker compose down
+docker exec -it ollama ollama pull mxbai-embed-large
+docker exec -it ollama ollama pull llama3.2:1b
 ```
 
-Volumes `weaviate_data` and `ollama_data` persist between runs. To remove them as well, run:
+### Container Not Starting
 
 ```bash
-docker compose down -v
+# Check logs
+docker logs hexanote-backend --tail 50
+docker logs weaviate --tail 50
+docker logs ollama --tail 50
+
+# Restart all containers
+docker compose restart
 ```
 
-## Credits
+---
 
-This sample is a collaboration between Weaviate and Qualcomm.
+## Project Structure
 
+```
+HexaNote/
+├── backend/              # FastAPI backend
+│   ├── routers/          # API endpoints
+│   ├── services/         # Business logic
+│   ├── models/           # SQLAlchemy models
+│   ├── schemas/          # Pydantic schemas
+│   └── Dockerfile
+├── windows-client/       # React frontend
+│   ├── src/
+│   │   ├── components/   # React components
+│   │   ├── pages/        # Page components
+│   │   └── services/     # API client
+│   └── package.json
+├── docker-compose.yml    # Docker orchestration
+└── README.md             # This file
+```
+
+---
+
+## Development
+
+### Run Backend Locally (without Docker)
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+```
+
+### Build Windows Client for Production
+
+```bash
+cd windows-client
+npm run build
+```
+
+---
+
+
+
+
+
+### 5. Test the API
+
+```bash
+# Health check
+curl http://localhost:8001/api/v1/health
+
+
+# Check all the notes
+curl http://localhost:8001/api/v1/notes | jq
+
+# Create a note
+curl -X POST http://localhost:8001/api/v1/notes \
+  -H "Content-Type: application/json" \
+  -d '{"title":"My First Note","content":"# Hello\n\nMath: $E=mc^2$","tags":["test"]}'
+
+# Chat with your notes
+curl -X POST http://localhost:8001/api/v1/chat/query \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What notes do I have?","limit":5}'
+
+
+# semantic search API
+curl "http://localhost:8001/api/v1/notes/search/semantic?q=python&limit=5"
+```
+
+
+
+
+## License
+
+MIT License - Use freely for personal or commercial projects.

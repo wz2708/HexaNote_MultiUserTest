@@ -13,7 +13,7 @@ print(client.is_connected())
 
 questions = client.collections.create(
     name="Book",
-    vector_config=wvc.config.Configure.Vectors.text2vec_ollama(model="snowflake-arctic-embed:latest", api_endpoint="http://ollama:11434"),
+    vector_config=wvc.config.Configure.Vectors.text2vec_ollama(model="mxbai-embed-large:latest", api_endpoint="http://ollama:11434"),
     generative_config=wvc.config.Configure.Generative.ollama(api_endpoint="http://ollama:11434", model="llama3.2:1b"),
     properties=[
         wc.Property(name="title", data_type=wc.DataType.TEXT),
