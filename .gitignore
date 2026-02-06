@@ -3,6 +3,10 @@
 __pycache__/
 *.py[codz]
 *$py.class
+.DS_Store
+
+# windows-app
+node_modules/
 
 # C extensions
 *.so
