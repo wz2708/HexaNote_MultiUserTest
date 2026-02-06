@@ -2,12 +2,42 @@
   "name": "windows-client",
   "private": true,
   "version": "0.0.1",
+  "description": "HexaNote Multi-User Windows Client",
+  "author": "HexaNote Team",
   "main": "dist-electron/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
+    "build:win": "tsc && vite build && electron-builder --win",
+    "build:no-sign": "tsc && vite build && electron-builder --config.win.sign=null",
     "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.hexanote.windows-client",
+    "productName": "HexaNote",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signingHashAlgorithms": null,
+      "sign": null,
+      "signDlls": false,
+      "signAndEditExecutable": false,
+      "certificateFile": null,
+      "certificatePassword": null,
+      "verifyUpdateCodeSignature": false
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "build/icon.ico",
+      "node_modules/**/*"
+    ]
   },
   "dependencies": {
     "axios": "^1.6.8",

@@ -1,24 +1,18 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
-    on(...args: Parameters<typeof window.ipcRenderer.on>) {
-        const [channel, listener] = args
-        return window.ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
+    on(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) {
+        ipcRenderer.on(channel, listener)
     },
-    off(...args: Parameters<typeof window.ipcRenderer.off>) {
-        const [channel, ...omit] = args
-        return window.ipcRenderer.off(channel, ...omit)
+    off(channel: string, listener: (...args: any[]) => void) {
+        ipcRenderer.off(channel, listener as any)
     },
-    send(...args: Parameters<typeof window.ipcRenderer.send>) {
-        const [channel, ...omit] = args
-        return window.ipcRenderer.send(channel, ...omit)
+    send(channel: string, ...args: any[]) {
+        ipcRenderer.send(channel, ...args)
     },
-    invoke(...args: Parameters<typeof window.ipcRenderer.invoke>) {
-        const [channel, ...omit] = args
-        return window.ipcRenderer.invoke(channel, ...omit)
+    invoke(channel: string, ...args: any[]) {
+        return ipcRenderer.invoke(channel, ...args)
     },
 
-    // You can expose other apts you need here.
-    // ...
 })

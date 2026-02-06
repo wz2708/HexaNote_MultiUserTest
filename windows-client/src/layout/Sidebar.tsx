@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Sticker, MessageSquare, Settings, Hexagon } from 'lucide-react'
+import { Sticker, MessageSquare, Hexagon } from 'lucide-react'
 import { clsx } from 'clsx'
 
 export function Sidebar() {

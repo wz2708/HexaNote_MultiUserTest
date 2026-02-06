@@ -215,3 +215,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.npm
+
+# Electron build outputs
+windows-client/dist/
+windows-client/dist-electron/
+windows-client/build/
+!windows-client/build/icon.svg
+!windows-client/build/icon.ico
