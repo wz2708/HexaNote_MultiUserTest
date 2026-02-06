@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { NoteService, Note } from '../services/api'
 import { NoteEditor } from '../components/NoteEditor'
-import { Plus, Search, FileText, Loader2, Trash2 } from 'lucide-react'
+import { Plus, Search, FileText, Loader2, Trash2, RefreshCw } from 'lucide-react'
 import { clsx } from 'clsx'
 
 export function NotesPage() {
@@ -120,12 +120,25 @@ export function NotesPage() {
                 <div className="p-4 border-b border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="font-bold text-lg">My Notes</h2>
-                        <button
-                            onClick={handleCreateNote}
-                            className="p-1.5 bg-cyan-600 text-white rounded hover:bg-cyan-500 transition-colors"
-                        >
-                            <Plus size={18} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={fetchNotes}
+                                className="p-1.5 bg-slate-800 text-cyan-400 rounded hover:bg-slate-800/90 transition-colors"
+                                title="Refresh notes"
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="animate-spin text-cyan-500" />
+                                ) : (
+                                    <RefreshCw size={18} />
+                                )}
+                            </button>
+                            <button
+                                onClick={handleCreateNote}
+                                className="p-1.5 bg-cyan-600 text-white rounded hover:bg-cyan-500 transition-colors"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
                     </div>
                     <form onSubmit={handleSearch} className="relative">
                         <Search className="absolute left-3 top-2.5 text-cyan-500 w-4 h-4" />
