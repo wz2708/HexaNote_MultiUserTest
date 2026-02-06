@@ -4,6 +4,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# windows-app
+node_modules/
+
 # C extensions
 *.so
 
